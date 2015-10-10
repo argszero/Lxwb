@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1,minimum-scale=1">
+    <link rel="stylesheet" href="file:///android_asset/lib/jquery-ui-1.11.4/jquery-ui.min.css">
+    <link rel="stylesheet" href="file:///android_asset/lib/jquery-ui-1.11.4/jquery-ui.structure.min.css">
+    <link rel="stylesheet" href="file:///android_asset/lib/jquery-ui-1.11.4/jquery-ui.theme.min.css">
+    <style type="text/css">
+        * {
+        -webkit-box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        box-sizing: border-box;
+        }
+
+        html {
+        -ms-touch-action: none;
+        }
+
+        body, ul, li {
+        padding: 0;
+        margin: 0;
+        border: 0;
+        }
+
+        body {
+        font-size: 12px;
+        font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesans, sans-serif;
+        overflow: hidden; /* this is important to prevent the whole page to bounce */
+        background-color:black;
+        color:#eee;
+        }
+
+        #wrapper {
+        position: absolute;
+        z-index: 1;
+        top: 0px;
+        bottom: 0px;
+        left: 9999px; /* Not a must - can be 0 - but it makes the appearance of the content a bit nicer */
+        width: 100%;
+        overflow: hidden;
+        }
+
+        #scroller {
+        position: absolute;
+        z-index: 1;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        width: 100%;
+        -webkit-transform: translateZ(0);
+        -moz-transform: translateZ(0);
+        -ms-transform: translateZ(0);
+        -o-transform: translateZ(0);
+        transform: translateZ(0);
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-text-size-adjust: none;
+        -moz-text-size-adjust: none;
+        -ms-text-size-adjust: none;
+        -o-text-size-adjust: none;
+        text-size-adjust: none;
+        }
+
+        #scroller ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        text-align: left;
+        }
+
+        #scroller li {
+        padding: 0px 0px;
+        #height: 80px;
+        line-height: 20px;
+        border-top: 1px solid #1142aa;
+        font-size: 14px;
+        }
+
+        .pullDownLabel, .pullUpLabel {
+        color: #999
+        }
+
+        .pullDown, .pullUp {
+        height: 40px;
+        line-height: 40px;
+        font-weight: bold;
+        font-size: 0.8em;
+        color: #888
+        }
+        .pullUp{
+        height: 40px;
+        border-top: 1px solid #1142aa;
+        }
+        .noTitleStuff .ui-dialog-titlebar {display:none}
+    </style>
+    <!--<link href="file:///android_asset/lib/video.js-5.0.0-rc.39/dist/video-js.css" rel="stylesheet">-->
+    <!--<script type="text/javascript" src="file:///android_asset/lib/video.js-5.0.0-rc.39/dist/video.js"></script>-->
+    <!--<script type="text/javascript">-->
+        <!--videojs.options.flash.swf = "file:///android_asset/lib/video.js-5.0.0-rc.39/dist/video-js.swf"-->
+    <!--</script>-->
+
+    <script type="text/javascript" src="file:///android_asset/lib/jquery-2.1.4.min.js"></script>
+    <script type="text/javascript" src="file:///android_asset/lib/jquery-ui-1.11.4/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="file:///android_asset/lib/iscroll-probe.js"></script>
+
+    <script type="text/javascript">
+
+        var topItemId=3;
+        var bottomItemId=topItemId;
+        var myScroll=null;
+        document.addEventListener('touchmove', function (e) {
+            e.preventDefault();
+        }, false);
+        var check = function(){
+            var count = window.backend.countWeibo();
+            if(count<5){
+                setTimeout(check,3000);
+            }else{
+                $('#loading_div').remove();
+                topItemId = window.backend.getCurrentWeiboId();
+                load('current');
+            }
+        }
+        var animateLoading = function(){
+            $('#loading_div').animate({
+                    opacity: 1-Math.random()/2    ,
+                    fontSize:(1+Math.random()/2)+"em"
+            },1000,animateLoading);
+        }
+        var main = function(){
+            if(window.backend){
+                animateLoading();
+                check();
+            }else{
+                document.body.innerHTML="Error";
+            }
+        }
+
+
+        var makeli=function(item){
+            var re = '';
+            if(typeof(item.re_id)!="undefined"){
+                var pic ='';
+                if(typeof(item.re_pics)!="undefined" && item.re_pics.trim().length>0){
+                    var pics = item.re_pics.split(",");
+                    if(pics.length>0){
+                        pic +='<tr><td pics="'+item.re_pics+'">';
+                        for(var i=0;i<pics.length;i++){
+                            pic+='<img pics="'+item.re_pics+'" src="thumbnail/'+pics[i]+'" max-height="120px" max-width="120px" />&nbsp;';
+                        }
+                        pic +='</tr></td>';
+                    }
+                }
+                var video ='';
+                if(typeof(item.re_videos)!="undefined" && item.re_videos.trim().length>0){
+                    var videos = item.re_videos.split(",");
+                    if(videos.length>0){
+                        var video1 = videos[0];
+                        video+='<tr><td>';
+                        video+='<video src="video/'+video1+'" width="100%" height="100%" controls></video>';
+                        video+='</tr></td>';
+                    }
+                }
+
+                re = '<tr><td><table style="width:100%;padding:10px;10px;"><tr><td>'
+                        + item.re_text
+                        + '</td></tr>'
+                        + pic
+                        + video
+                        +'<tr><td style="text-align:right;"><span style="font-size:0.7em;color:#ccc;">'
+                         + '<button weiboid="'+item.re_id+'" style="background:#333;border:#333;color:white">转发</button>'
+                        + '&nbsp;&nbsp;'
+                        + item.re_user_name
+                        + '&nbsp;&nbsp;'
+                        + item.re_created_at
+                        + '</span></td></tr>'
+                        +'</table></tr></td>';
+            }
+            var pic ='';
+                if(typeof(item.pics)!="undefined"&& item.pics.trim().length>0){
+                    var pics = item.pics.split(",");
+                    if(pics.length>0){
+                        pic +='<tr><td pics="'+item.pics+'">';
+                        for(var i=0;i<pics.length;i++){
+                            pic+='<img pics="'+item.pics+'" src="thumbnail/'+pics[i]+'" max-height="120px" max-width="120px" />';
+                        }
+                        pic +='</tr></td>';
+                    }
+            }
+            var video ='';
+            if(typeof(item.videos)!="undefined" && item.videos.trim().length>0){
+                var videos = item.videos.split(",");
+                if(videos.length>0){
+                    var video1 = videos[0];
+                    video+='<tr><td>';
+                    video+='<video src="video/'+video1+'" width="100%" height="100%" controls></video>';
+                    video+='</tr></td>';
+                }
+            }
+
+            var result= '<li id="c-'+item.id+'">'
+                        + '<table style="width:100%;padding:10px;10px;"><tr><td>'
+                        + item.text
+                        + '</td></tr>'
+                        + pic
+                        + video
+                        +'<tr><td style="text-align:right;"><span style="font-size:0.7em;color:#ccc;">'
+                        + '<button weiboid="'+item.id+'" style="background:#333;border:#333;color:white">转发</button>'
+                        + '&nbsp;&nbsp;'
+                        + item.user_name
+                        + '&nbsp;&nbsp;'
+                        + item.created_at
+                        + '</span></td></tr>'
+                        + re
+                        +'</table></li>';
+            return result;
+        }
+        var toucheThumbnail = function(e){
+            if(e.target.tagName=="TD"){
+                var pics = $(e.target).attr("pics");
+                if(typeof(pics)!="undefined"&&pics!=null && pics.length>0){
+                    if(e.type == 'touchstart'){
+                        $(e.target).attr("move","false");
+                    }else if(e.type == 'touchmove'){
+                        $(e.target).attr("move","true");
+                    }else if(e.type == 'touchend'){
+                        if("false" == $(e.target).attr("move")){
+                            window.backend.openImage("large","",pics);
+                        }
+                    }
+                }
+            }
+            var src = $(e.target).attr("src");
+            if(src != null && /thumbnail\/.*/.test(src)){
+                if(e.type == 'touchstart'){
+                    $(e.target).attr("move","false");
+                }else if(e.type == 'touchmove'){
+                    $(e.target).attr("move","true");
+                }else if(e.type == 'touchend'){
+                    if("false" == $(e.target).attr("move")){
+                        var large = "large"+ src.substring(9);
+                        window.backend.openImage("large",src.substring(9),$(e.target).attr("pics"));
+                    }
+                }
+            }
+        }
+        var clickRePost = function(e){
+            if(e.target.tagName == "BUTTON"){
+                $('#sendRePost_btn').attr('weiboid',$(e.target).attr("weiboid"));
+                $('#rePost_btn').dialog({ dialogClass: 'noTitleStuff',position: { my: 'top', at: 'top+10' } });
+            }
+        }
+        var load = function(action){
+            if(action=='current'){
+                var items = JSON.parse(window.backend.listWeiboBeforeInclude(topItemId,15));
+                for( var i =0;i<items.length;i++){
+                    var item = items[i];
+                    if(i==0){
+                        topItemId=item.id;
+                        window.backend.setCurrentWeiboId(topItemId);
+                    }
+                    if(i==items.length-1){
+                        bottomItemId = item.id;
+                    }
+                    $(makeli(item))
+                        .appendTo($('#wrapper > #scroller > ul'))
+                        .bind("touchstart touchmove touchend",toucheThumbnail)
+                        .bind("click",clickRePost);
+                }
+            }else if(action=='pre'){
+                var old = myScroll.maxScrollY;
+                var items = JSON.parse(window.backend.listWeiboAfter(topItemId,15));
+                for( var i =items.length-1;i>-1;i--){
+                    var item = items[i];
+                    if(i==0){
+                        topItemId=item.id;
+                        window.backend.setCurrentWeiboId(topItemId);
+                    }
+                    $(makeli(item))
+                        .prependTo($('#wrapper > #scroller > ul'))
+                        .bind("touchstart touchmove touchend",toucheThumbnail)
+                        .bind("click",clickRePost);
+                }
+                setTimeout(function(){
+                    myScroll.maxScrollY = document.querySelector('#wrapper').offsetHeight-document.querySelector('#wrapper ul').offsetHeight-80;
+                    myScroll.scrollTo(0,myScroll.maxScrollY-old,0)
+                },500);
+            }else if(action=='suffix'){
+
+                var items = JSON.parse(window.backend.listWeiboBefore(bottomItemId,15));
+                for( var i =0;i<items.length;i++){
+                    var item = items[i];
+                    if(i==items.length-1){
+                        bottomItemId = item.id;
+                    }
+                     $(makeli(item))
+                        .appendTo($('#wrapper > #scroller > ul'))
+                        .bind("touchstart touchmove touchend",toucheThumbnail)
+                        .bind("click",clickRePost);
+                }
+                setTimeout(function(){
+                    myScroll.maxScrollY = document.querySelector('#wrapper').offsetHeight-document.querySelector('#wrapper ul').offsetHeight-80;
+                },500);
+            }
+
+            if(action=='current'){
+                setTimeout(function(){
+                    render();
+                },500);
+            }
+        }
+
+        function render() {
+            myScroll = new IScroll('#wrapper', {
+                probeType: 1,
+                tap: true,
+                click: false,
+                preventDefaultException: {tagName: /.*/},
+                mouseWheel: true,
+                scrollbars: true,
+                fadeScrollbars: true,
+                interactiveScrollbars: false,
+                keyBindings: false,
+                deceleration: 0.0002,
+                startY: (parseInt(document.querySelector('#wrapper .pullDown').offsetHeight) * (-1))
+            });
+
+            myScroll.on('scrollStart', function () {
+            });
+
+            myScroll.on('scroll', function () {
+                if(myScroll.y > 0){
+                    document.querySelector('#wrapper .pullDownLabel').innerHTML = '松开加载更新...';
+                }else{
+                    document.querySelector('#wrapper .pullDownLabel').innerHTML = '下拉加载更新...';
+                }
+                if(document.querySelector('#wrapper').offsetHeight-document.querySelector('#wrapper ul').offsetHeight-myScroll.y >80){
+                    document.querySelector('#wrapper .pullUpLabel').innerHTML = '松开加载历史...';
+                }else{
+                    document.querySelector('#wrapper .pullUpLabel').innerHTML = '上拉加载历史...';
+                }
+            });
+            myScroll.on('scrollEnd', function () {
+
+                if(document.querySelector('#wrapper .pullDownLabel').innerHTML == '松开加载更新...'){
+                    load('pre');
+                }
+                if(myScroll.y > document.querySelector('#wrapper .pullDown').offsetHeight * (-1)){
+                    document.querySelector('#wrapper .pullDownLabel').innerHTML = '下拉加载更新...';
+                    if(myScroll.y!=0){
+                        myScroll.scrollTo(0,document.querySelector('#wrapper .pullDown').offsetHeight * (-1),1000)
+                    }
+
+                }
+
+                if(document.querySelector('#wrapper .pullUpLabel').innerHTML == '松开加载历史...'){
+                    load('suffix');
+                    document.querySelector('#wrapper .pullUpLabel').innerHTML = '上拉加载历史...';
+                }
+
+            });
+
+            // In order to prevent seeing the "pull down to refresh" before the iScoll is trigger
+            // - the wrapper is located at left:-9999px and returned to left:0 after the iScoll is initiated
+            setTimeout(function () {
+                $('#wrapper').css({left: 0});
+            }, 100);
+            $('#cancelRePost_btn').bind('click',function(){
+                $('#rePost_btn').dialog("close");
+            });
+            $('#sendRePost_btn').bind('click',function(){
+                var weiboid = parseInt($('#sendRePost_btn').attr('weiboid'));
+                if(weiboid!=NaN){
+                    window.backend.saveRePost(weiboid,$('#postContent').val());
+                }
+                $('#rePost_btn').dialog("close");
+            });
+
+            (function(){
+                var t=null;
+                $('body').bind('mousedown',function(){
+                    console.log('mousedown');
+                    clearTimeout(t);
+                    t = setTimeout(showSetting,4000);
+                });
+                $('body').bind('mousemove',function(){
+                    console.log('mousemove');
+                    clearTimeout(t);
+                    t = setTimeout(showSetting,4000);
+                });
+                $('body').bind('mouseleave mouseup',function(){
+                    console.log('mouseleave mouseup');
+                    clearTimeout(t);
+                });
+                var showSetting = function(){
+                    window.backend.showSetting();
+                }
+            }());
+        }
+
+    </script>
+</head>
+<body onload="main()">
+<div id="rePost_btn" style="background:black;color:white;width:100%;display:none">
+    <textarea id="postContent" style="width:100%">@保存到为知笔记</textarea>
+    <button id="cancelRePost_btn">取消</button>
+    &nbsp;&nbsp;&nbsp;&nbsp;
+    <button id="sendRePost_btn">发送</button>
+</div>
+<div id="loading_div" style="width:100%;height:100%;position:absolute;">
+    <table style="height:100%;width:100%">
+        <tr><td style="text-align:center;"><span id="loading" class="">请连接wifi，等待1分钟，加载离线数据中...</span></td></tr>
+    </table>
+</div>
+<div id="wrapper">
+    <div id="scroller">
+        <div class="pullDown">
+            <span class="pullDownLabel">下拉加载更新...</span>
+        </div>
+        <ul></ul>
+        <div class="pullUp">
+            <span class="pullUpLabel">上拉加载历史...</span>
+        </div>
+    </div>
+</div>
+</body>
+</html>

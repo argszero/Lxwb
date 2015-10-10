@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <style type="text/css">
+        body {
+        font-size: 12px;
+        font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesans, sans-serif;
+        overflow: hidden; /* this is important to prevent the whole page to bounce */
+        background-color:black;
+        color:#eee;
+        }
+    </style>
+    <script type="text/javascript" src="file:///android_asset/lib/jquery-2.1.4.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $('#account').val(window.backend.get('account',''));
+            $('#password').val(window.backend.get('password',''));
+            $('#token').text(window.backend.get('token',''));
+
+            $('#account').bind('keyup change',function(){
+                window.backend.set('account',$('#account').val());
+            });
+            $('#password').bind('keyup change',function(){
+                window.backend.set('password',$('#password').val());
+            });
+
+        });
+    </script>
+</head>
+<body>
+<label>帐号:</label><input id="account" />
+<br/>
+<label>密码:</label><input id="password" type="password" />
+<label id="token"></label>
+<br/>
+<button>ok</button>
+</body>
+</html>
